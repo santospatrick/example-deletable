@@ -1,6 +1,7 @@
-import { FormEvent, useMemo, useState } from "react";
+// wrong!!! bad!!! do not do!!!
+
+import { FormEvent, useEffect, useState } from "react";
 import { firestore } from "../services/firebase";
-import { useCollection } from 'react-firebase-hooks/firestore';
 
 type User = {
   id: string
@@ -13,34 +14,35 @@ function transformUser(user) {
 
 function Index() {
   const [value, setValue] = useState('')
-  const [data, loading, error] = useCollection<User>(firestore.collection('users'))
+  const [users, setUsers] = useState<User[]>([]);
 
-  const users = useMemo(() => {
-    return data?.docs.map(transformUser)
-  }, [data])
+  useEffect(() => {
+    async function getUsers() {
+      const response = await firestore.collection('users').get()
+      const users = response.docs.map(transformUser)
+      setUsers(users as User[])
+    }
+
+    getUsers()
+  }, [])
   
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     const newUser = { name: value }
     const response = await firestore.collection('users').add(newUser)
+    setUsers(prevState => [...prevState, {id: response.id, ...newUser}])
     setValue('')
   }
 
   const updateUser = async (userId: string) => {
     const newMonkey = {name: 'Monkey'};
     await firestore.doc(`users/${userId}`).update(newMonkey)
+    setUsers(prevState => prevState.map(user => user.id === userId ? {id: userId, ...newMonkey} : user))
   }
   
   const deleteUser = async (userId: string) => {
     await firestore.doc(`users/${userId}`).delete()
-  }
-
-  if (loading) {
-    return 'Loading...'
-  }
-
-  if (error) {
-    return `An error has occured: ${error.message}`
+    setUsers(prevState => prevState.filter(user => user.id !== userId))
   }
 
   return (
@@ -51,7 +53,7 @@ function Index() {
         <button>submit</button>
       </form>
       <ul>
-        {users?.map(user => {
+        {users.map(user => {
           return (
             <p key={user.id}>{user.name} 
               <button onClick={() => updateUser(user.id)}>turn into a monkey</button>
