@@ -10,3 +10,5 @@ node_modules/
 
 # exported data from local firestore instance
 data/
+
+service-account.json

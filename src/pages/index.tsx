@@ -1,11 +1,16 @@
 import { FormEvent, useMemo, useState } from "react";
 import { firestore } from "../services/firebase";
 import { useCollection } from 'react-firebase-hooks/firestore';
+import algoliasearch from 'algoliasearch/lite';
+import { InstantSearch, SearchBox, Hits } from 'react-instantsearch-dom';
 
 type User = {
   id: string
   name: string
 }
+
+// the right thing to do is use these values as environment variables
+const searchClient = algoliasearch('QLWCLDVRIV', '32592c31b33082885bac48d861cd0158');
 
 function transformUser(user) {
   return { id: user.id, ...user.data() }
@@ -60,6 +65,10 @@ function Index() {
           )
         })}
       </ul>
+      <InstantSearch searchClient={searchClient} indexName="users">
+        <SearchBox />
+        <Hits hitComponent={props => <div>{props.hit.name}</div>} />
+      </InstantSearch>
     </div>
   )
 }

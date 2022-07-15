@@ -1,6 +1,8 @@
 # Firebase workshop
 > Example application made with Next.js + Firebase SDK
 
+[Service Account Google Doc](https://docs.google.com/document/d/1UDPgJ6vARZjNL8u4fOUEQWGlYqHcBGmoZbxCrZXLsmY/edit?usp=sharing)
+
 [![slides.com embed code screenshot](docs/embed.png)](https://slides.com/santospatrick/firebase)
 
 ## Setup
