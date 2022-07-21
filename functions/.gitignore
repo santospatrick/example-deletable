@@ -13,3 +13,5 @@ data/
 
 service-account.json
 .runtimeconfig.json
+
+.env

@@ -19,6 +19,7 @@ function transformUser(user) {
 function Index() {
   const [value, setValue] = useState('')
   const [data, loading, error] = useCollection<User>(firestore.collection('users'))
+  console.log("🚀 ~ file: index.tsx ~ line 22 ~ Index ~ data", data)
 
   const users = useMemo(() => {
     return data?.docs.map(transformUser)

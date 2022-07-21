@@ -1,3 +1,4 @@
+import {firestore} from "./services/firebase";
 import * as functions from "firebase-functions";
 
 // Start writing Firebase Functions
@@ -9,3 +10,8 @@ export const helloWorld = functions.https.onRequest((request, response) => {
   });
   response.send("Hello from Workshop!");
 });
+
+export const createUserInFirestore = functions
+    .auth.user().onCreate(async (user) => {
+      await firestore.doc(`users/${user.uid}`).set({name: user.displayName});
+    });
