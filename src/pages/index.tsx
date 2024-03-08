@@ -1,45 +1,29 @@
-import { FormEvent, useEffect, useState } from "react"
-import { firestore } from "../services/firebase";
+import algoliasearch from 'algoliasearch';
+import React from 'react'
+import { Configure, Hits, InstantSearch, SearchBox } from 'react-instantsearch-dom';
+import { firestore } from '../services/firebase';
+
+const searchClient = algoliasearch('4HWSN0DAZY', 'd5257b78ed476d469046e7da06c0620d');
+
+type Props = {
+  hit: any
+}
+
+function Hit({ hit }: Props) {
+  const onDelete = async (id: string) => {
+    await firestore.collection('users').doc(id).delete();
+  }
+
+  return <div>{hit.name} <button onClick={() => onDelete(hit.objectID)}>delete</button> </div>
+}
 
 function Index() {
-  const [users, setUsers] = useState<any[]>([]);
-  const [value, setValue] = useState('')
-
-  useEffect(() => {
-    async function getUsers(){
-      // collections -> documents
-      const snapshot = await firestore.collection('users').get()
-      const data = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
-      setUsers(data)
-    }
-
-    getUsers();
-  }, [])
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const newUser = await firestore.collection('users').add({name: value})
-    setUsers(prevState => [...prevState, {id: newUser.id, name: value }])
-    setValue('')
-  }
-
-  const handleDelete = async (userId: string) => {
-    // deleting a document
-    await firestore.doc(`users/${userId}`).delete();
-    setUsers(prevState => prevState.filter(state => state.id !== userId))
-  }
-  
   return (
-    <div>
-      <h1>Firebase workshop! 🚀</h1>
-      <form onSubmit={handleSubmit}>
-        <input onChange={event => setValue(event.target.value)} value={value} type="text" />
-        <button type="submit">create new user</button>
-      </form>
-      <ul>
-        {users.map(user => <li key={user.id}>{user.name}<button onClick={() => handleDelete(user.id)} type="button">delete</button></li>)}
-      </ul>
-    </div>
+    <InstantSearch searchClient={searchClient} indexName='users'>
+      <SearchBox />
+      <Hits hitComponent={Hit} />
+      <Configure filters="organizationId:123" />
+    </InstantSearch>
   )
 }
 
