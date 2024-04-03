@@ -1,82 +1,64 @@
-import algoliasearch from 'algoliasearch';
-import React, { useCallback, useState } from 'react'
+import React, { FormEvent, useState } from 'react'
 import { firestore } from '../services/firebase';
-import { Configure, InstantSearch, useHits, useSearchBox } from 'react-instantsearch-hooks-web';
+import { useCollectionData } from 'react-firebase-hooks/firestore';
 
-const searchClient = algoliasearch('4HWSN0DAZY', 'd5257b78ed476d469046e7da06c0620d');
+type Props = {}
 
-type Props = {
-  hit: any
-  onDelete: (id: string) => void
-}
-import { useEffect } from 'react';
-
-function useDebounce<T>(value: T, delay: number): T {
-  // State and setters for debounced value
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(
-    () => {
-      // Update debounced value after delay
-      const handler = setTimeout(() => {
-        setDebouncedValue(value);
-      }, delay);
-
-      // Cleanup function
-      return () => {
-        clearTimeout(handler);
-      };
-    },
-    [value, delay] // Only re-call effect if value or delay changes
-  );
-
-  return debouncedValue;
+type User = {
+  id: string
+  age: number
+  name: string
 }
 
-function Hit({ hit, onDelete }: Props) {
-  return <div>{hit.name} <button onClick={() => onDelete(hit.objectID)}>delete</button> </div>
-}
-
-function SearchPage() {
-  const [deletedIds, setDeletedIds] = useState<string[]>([])
+function Index({}: Props) {
+  const [users = [], loading, error] = useCollectionData<User>(firestore.collection('users'), {
+    idField: 'id'
+  })
   const [value, setValue] = useState('')
-  const debouncedSearchTerm = useDebounce(value, 500);
 
-  const { refine } = useSearchBox();
+  if (loading) {
+    return <div>Loading...</div>
+  }
 
-  useEffect(() => {
-    refine(debouncedSearchTerm)
-  }, [debouncedSearchTerm])
+  if (error) {
+    return <div>Error: {error}</div>
+  }
 
-  const transformItems = useCallback((items: any) => items.filter((item: any) => !deletedIds.includes(item.objectID)), [deletedIds])
-
-  const { hits } = useHits({
-    transformItems
-  });
-
-  const onDelete = async (id: string) => {
-    try {
-      setDeletedIds(prevState => [...prevState, id])
-      await firestore.collection('users').doc(id).delete();
-    } catch {
-      // revert the deletion
+  const onDeleteUser = async (id: string) => {
+    await firestore.collection('users').doc(id).delete()
+  }
+  
+  const onEdit = async (id: string) => {
+    const name = prompt('Enter new name')
+    if (!name) {
+      return
     }
+    await firestore.collection('users').doc(id).update({ name })
+  }
+
+  const onSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    await firestore.collection('users').add({ name: value })
+    setValue('')
   }
 
   return (
-    <>
-      <input onChange={e => setValue(e.target.value)} value={value} />
-      {hits.map(hit => <Hit key={hit.objectID} hit={hit} onDelete={onDelete} />)}
-      <Configure />
-    </>
-  )
-}
-
-function Index() {
-  return (
-    <InstantSearch searchClient={searchClient} indexName='users'>
-      <SearchPage />
-    </InstantSearch>
+    <div>
+      <h1>Users</h1>
+      <form onSubmit={onSubmit}>
+        <input type="text" onChange={event => setValue(event.target.value)} value={value} />
+        <button>submit</button>
+      </form>
+      <ul>
+        {users.map(({ id, name }) => (
+          <li key={id}>
+            <span>{name}</span>
+            <button type='button' onClick={() => onDeleteUser(id)}>x</button>
+            <button type="button" onClick={() => onEdit(id)}>edit</button>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
