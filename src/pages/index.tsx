@@ -1,63 +1,60 @@
-import React, { FormEvent, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { firestore } from '../services/firebase';
-import { useCollectionData } from 'react-firebase-hooks/firestore';
-
-type Props = {}
+import { useCollectionData } from 'react-firebase-hooks/firestore'
 
 type User = {
   id: string
-  age: number
   name: string
 }
 
-function Index({}: Props) {
-  const [users = [], loading, error] = useCollectionData<User>(firestore.collection('users'), {
+function Index() {
+  const [text, setText] = useState('')
+  const [isEditingId, setIsEditingId] = useState('')
+  const [values = [], loading, error] = useCollectionData<User>(firestore.collection('users'), {
     idField: 'id'
-  })
-  const [value, setValue] = useState('')
+  });
+
+  const handleSubmit = async (event: any) => {
+    event.preventDefault();
+
+    if (isEditingId) {
+      await firestore.collection('users').doc(isEditingId).update({ name: text })
+      setIsEditingId('')
+      setText('')
+    } else {
+      await firestore.collection('users').add({ name: text })
+    }
+    
+    setText('')
+  }
+
+  const onDelete = async (id: string) => {
+    await firestore.collection('users').doc(id).delete()
+    console.log('user deleted successfully')
+  }
+
+  const onEdit = async (id: string) => {
+    setIsEditingId(id)
+    setText(values.find(user => user.id === id)?.name || '')
+  }
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div>loading...</div>
   }
 
   if (error) {
-    return <div>Error: {error}</div>
-  }
-
-  const onDeleteUser = async (id: string) => {
-    await firestore.collection('users').doc(id).delete()
-  }
-  
-  const onEdit = async (id: string) => {
-    const name = prompt('Enter new name')
-    if (!name) {
-      return
-    }
-    await firestore.collection('users').doc(id).update({ name })
-  }
-
-  const onSubmit = async (event: FormEvent) => {
-    event.preventDefault()
-    await firestore.collection('users').add({ name: value })
-    setValue('')
+    return <div>An error has occurred.</div>
   }
 
   return (
     <div>
-      <h1>Users</h1>
-      <form onSubmit={onSubmit}>
-        <input type="text" onChange={event => setValue(event.target.value)} value={value} />
+      <ul>
+        {values.map(user => (<li key={user.id}>{user.name} <button onClick={() => onEdit(user.id)}>edit</button> <button onClick={() => onDelete(user.id)}>delete</button></li>))}
+      </ul>
+      <form onSubmit={handleSubmit} noValidate>
+        <input onChange={event => setText(event.target.value)} value={text} type="text" />
         <button>submit</button>
       </form>
-      <ul>
-        {users.map(({ id, name }) => (
-          <li key={id}>
-            <span>{name}</span>
-            <button type='button' onClick={() => onDeleteUser(id)}>x</button>
-            <button type="button" onClick={() => onEdit(id)}>edit</button>
-          </li>
-        ))}
-      </ul>
     </div>
   )
 }
